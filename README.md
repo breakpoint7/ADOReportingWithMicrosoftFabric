@@ -56,7 +56,7 @@ Add a "Organization" parameter to pass to the dataflow with the name of your ADO
 Run the PrepareProjects Pipeline again and it should fully succeed now.  You can re-run that pipeline anytime you need to refresh the project list.  You can explore the ProjectTracking table and see that all the projects are there.
 ![alt text](images/SampleProjectAndSK.png)
  
-# Summary of what this is actually doing:
+## Summary of what this is actually doing:
 Creates a ProjectTracking Table in your Warehouse with the name, SK, and LastModified date of each project.  Organization is a variable in your dataflow and passed in by the pipeline.  You'll need to configure a connection anytime that organization changes, but it will use the saved connection once you do that.
 I do this as an easy way to reference all the projects I want to work with as a table in the warehouse so I don't have to query ADO each time.  It also serves as a placeholder to record the last sync date for each project, so we can query for changes between runs (vs. trying to pull everything each time).  
  
@@ -96,7 +96,7 @@ Map it to your current workspace and make sure it calls SeedWorkItemsByProject d
 Finally, make sure the RemoveDuplicates and UpdateProjectTracking steps and update the connection to your new warehouse.
 Validate to make sure everything looks good - Save and Run.
  
-# Summary of what this is doing:
+## Summary of what this is doing:
 This pipeline uses the ProjectTracking table we setup earlier and enumerates every project in that table, effectively calling the ForEach (RunDataflowForEachProject) on every project.
 The ForEach derives a start and stop date by looking at whether you set these pipeline variables, and if not - will try to set the start date based on the last time it was run (looking at the LastModifed data in the ProjectTacking table) and using the current date as the new stop date.
 It calls the SeedWorkItemsByProject dataflow with these params, so that is executing a project level ODATA query to get new worktimes (based on the ADO AnalyticsUpdatedDate) and saves those off into the warehouse in the project related table.
