@@ -1,16 +1,27 @@
-# Explanation
+# Azure DevOps Reporting using Microsoft Fabric
 Azure DevOps provides analytics views and ODATA support for building advanced queries.  These are powerful capabilities, but often lend to challenges with resource consumption for large scale organizations when reports are significantly large or complex.  It's not uncommon to run into throttling limitations by the ADO analytics service, Power BI Service, or limitations of the Power BI client when building queries on a desktop.  It can also be hard to determine exactly when/where a limit is being hit.  Simply put, if you are doing large scale reporting with ADO, it can be a journey to navigate these types of issues.
+
+Similarly, ADO provides a rich set of APIs to get just about any kind of data you need - but these are also subject to throttling limitations. Simply put, they are great for many integration scenarios but not ideal for querying large amounts of data you might need for more complex reporting purposes.
  
 Microsoft Fabric provides a robust environment where you have better control over the compute used to perform these types of reporting tasks.  It also provides a rich set of tools of ingest data from various sources, build reports, and orchestrate the automation needed to refresh data sets.
  
-While there is still a little bit of work involved to get ADO data into Fabric, it's a much more capable platform to do this type of reporting.  You may still need to fine tune queries and date ranges to avoid throttling by the ADO analytics service during ingestion, but you have much more control of the compute in Fabric once it's in there.
+As of today (July 2025), while there is still a little bit of work involved to get ADO data into Fabric, it's a much more capable platform for ADO reporting needs.  You may still need to fine tune queries and date ranges to avoid throttling by the ADO analytics service during ingestion, but you have much more control of the compute in Fabric once it's in there.
  
-The approach below is intended as a help jump start this journey with Fabric.  It uses ODATA queries against Azure DevOps Analytics Service.  For the purpose of this sample, these queries are very basic, but you could easily expand those for more specific use cases.
+The approach below is intended as a help jump start this journey with Fabric.  It uses ODATA queries against Azure DevOps Analytics Service.  For the purpose of this sample, the queries used are very basic, but you could easily expand those for more complex use cases.
  
 There's no built-in way to handle incremental refresh with ODATA today (that may change), but you can incorporate dates into your Analytics queries and build some simple logic to effectively keep your queries small and implement a refresh that only grabs deltas.
  
 This approach uses a pipeline+dataflow to build a tracking table of ADO projects and store a LastModified data (when it was last imported).  It uses a second pipeline+dataflow to enumerate the tracking table and run an import of each ADO project to pull the latest workitems into Fabric. 
- 
+
+Before you start down this road, it's a good idea to spend some time exploring the Azure DevOps Analytics and ODATA implementation - along with query guidelines to get more familiar with the model.
+##References:
+**What is Analytics?**
+https://learn.microsoft.com/en-us/azure/devops/report/powerbi/what-is-analytics?view=azure-devops
+**OData Analytics query guidelines for Azure DevOps**
+https://learn.microsoft.com/en-us/azure/devops/report/extend-analytics/odata-query-guidelines?view=azure-devops
+**Performance and latency of Analytics**
+https://learn.microsoft.com/en-us/azure/devops/report/powerbi/performance-latency?view=azure-devops 
+
 Let's get started…
  
 # Create the new Warehouse
