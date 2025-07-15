@@ -28,6 +28,8 @@ https://learn.microsoft.com/en-us/azure/devops/report/extend-analytics/odata-que
 **Performance and latency of Analytics**
 https://learn.microsoft.com/en-us/azure/devops/report/powerbi/performance-latency?view=azure-devops 
 
+This is a work in progress, so feel free to share your findings to help out the community.
+
 Let's get started…
  
 # Create the new Warehouse
