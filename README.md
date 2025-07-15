@@ -12,7 +12,7 @@ The approach below is intended as a help jump start this journey with Fabric.  I
 There are a few "gotchas".  
 
 While Fabric provides some capabilities for incremenetal refresh, it depends on data sources that support it the requirements.  As of now, the ODATA implementation with ADO isn't one of them, but you can incorporate dates into your Analytics queries and build some simple logic to effectively keep your queries small and implement a refresh that only grabs deltas. 
-The other thing you will run into is that you may need to do some data conversion between ADO's ODATA results and what you can push into Fabric Warehouse. For instance, Date/Time/Zome will need to be converted to Date/Time. For more info, details, check out https://learn.microsoft.com/en-us/fabric/data-factory/dataflow-gen2-data-destinations-and-managed-settings#supported-data-source-types-per-destination
+The other thing you will run into is that you may need to do some data conversion between ADO's ODATA results and what you can push into Fabric Warehouse. For instance, Date/Time/Zome will need to be converted to Date/Time. For more details, check out https://learn.microsoft.com/en-us/fabric/data-factory/dataflow-gen2-data-destinations-and-managed-settings#supported-data-source-types-per-destination
  
 This approach uses a pipeline+dataflow to build a tracking table of ADO projects and store a LastModified data (when it was last imported).  It uses a second pipeline+dataflow to enumerate the tracking table and run an import of each ADO project to pull the latest workitems into Fabric. 
 
