@@ -1,0 +1,75 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "name": "Setup Tracking Table",
+        "description": "Sets up a ProjectTracking Table that will be used to easily reference all ADO projects, along with name, SK, and a LastUpdated date (to indicate with it last sync'd)",
+        "type": "Script",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "linkedService": {
+          "name": "ADOMirror",
+          "properties": {
+            "annotations": [],
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "endpoint": "vtdel4sf7xjulpdn2h3xornpba-s6jkknxj6moepnlevqk37akzha.datawarehouse.fabric.microsoft.com",
+              "artifactId": "630ac908-f597-443a-9d83-6aed868f27f7",
+              "workspaceId": "36a59297-f3e9-471c-b564-ac15bf815938"
+            }
+          }
+        },
+        "typeProperties": {
+          "scripts": [
+            {
+              "type": "Query",
+              "text": {
+                "value": "    IF NOT EXISTS (\n        SELECT 1\n        FROM INFORMATION_SCHEMA.TABLES\n        WHERE TABLE_NAME = 'ProjectTracking'\n              AND TABLE_TYPE = 'BASE TABLE'\n    )\n    BEGIN\n        CREATE TABLE dbo.ProjectTracking (\n            ProjectName VARCHAR(8000) NULL,\n            ProjectSK   VARCHAR(8000) NULL,\n            LastUpdated DATETIME2(6) NULL\n        );\n    END;\n",
+                "type": "Expression"
+              }
+            }
+          ],
+          "scriptBlockExecutionTimeout": "02:00:00"
+        }
+      },
+      {
+        "name": "Populate Projects from ADO",
+        "description": "Call the dataflow to grab all ADO projects from ODATA and populate the list of projects used by other pipelines and dataflows",
+        "type": "RefreshDataflow",
+        "dependsOn": [
+          {
+            "activity": "Setup Tracking Table",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "dataflowId": "6decdb39-ad09-4fd2-b480-33acf496aa77",
+          "workspaceId": "36a59297-f3e9-471c-b564-ac15bf815938",
+          "notifyOption": "NoNotification",
+          "dataflowType": "DataflowFabric",
+          "parameters": {
+            "Organization": {
+              "value": "DevUtopia",
+              "type": "string"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

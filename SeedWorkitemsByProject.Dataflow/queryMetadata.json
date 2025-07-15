@@ -1,0 +1,57 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "SeedWorkitemsByProject",
+  "queryGroups": [],
+  "documentLocale": "en-US",
+  "queriesMetadata": {
+    "Query": {
+      "queryId": "bf086009-92ae-4738-9a08-6b64a24fdb45",
+      "queryName": "Query"
+    },
+    "Organization": {
+      "queryId": "ca2110e9-e9b6-43b8-b5e6-4e72f5fa18a2",
+      "queryName": "Organization",
+      "loadEnabled": false
+    },
+    "ProjectName": {
+      "queryId": "acf03867-01c3-4f2b-ad9a-f280a5595d7f",
+      "queryName": "ProjectName",
+      "loadEnabled": false
+    },
+    "ProjectSK": {
+      "queryId": "adac0f17-3201-423a-859b-e62c2b4a6dd7",
+      "queryName": "ProjectSK",
+      "loadEnabled": false
+    },
+    "ImportStartDate": {
+      "queryId": "3c95e0c5-dda9-4b5f-b579-880f4542c9c7",
+      "queryName": "ImportStartDate",
+      "loadEnabled": false
+    },
+    "ImportStopDate": {
+      "queryId": "2d3a777c-2507-4a58-ba21-0b60a4731f16",
+      "queryName": "ImportStopDate",
+      "loadEnabled": false
+    },
+    "Query_DataDestination": {
+      "queryId": "da1bb8ef-03f3-4f85-bc40-cc36418f8e85",
+      "queryName": "Query_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "https://analytics.dev.azure.com/",
+      "kind": "OData",
+      "connectionId": "{\"ClusterId\":\"31f9eff4-ae89-405e-8fd9-83a2e261c3be\",\"DatasourceId\":\"486b2f75-f0bd-4aec-952c-b6fab4e5dcf2\"}"
+    },
+    {
+      "path": "Warehouse",
+      "kind": "Warehouse",
+      "connectionId": "{\"ClusterId\":\"31f9eff4-ae89-405e-8fd9-83a2e261c3be\",\"DatasourceId\":\"d50859a1-cf7d-4b3b-8bbf-a5e5cea2b33d\"}"
+    }
+  ],
+  "parametric": true
+}

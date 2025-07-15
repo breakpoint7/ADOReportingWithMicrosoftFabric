@@ -1,0 +1,37 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "PopulateProjectsTableFromADO",
+  "queryGroups": [],
+  "documentLocale": "en-US",
+  "queriesMetadata": {
+    "Query": {
+      "queryId": "8eec8bff-f4cc-4f82-b748-a33d88448aac",
+      "queryName": "Query"
+    },
+    "Organization": {
+      "queryId": "8335dde1-f123-4e95-bc17-0ef1a6c28b17",
+      "queryName": "Organization",
+      "loadEnabled": false
+    },
+    "Query_DataDestination": {
+      "queryId": "ce881b3b-1732-49ed-a3cb-da6f9f4b85be",
+      "queryName": "Query_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "https://analytics.dev.azure.com/",
+      "kind": "OData",
+      "connectionId": "{\"ClusterId\":\"31f9eff4-ae89-405e-8fd9-83a2e261c3be\",\"DatasourceId\":\"486b2f75-f0bd-4aec-952c-b6fab4e5dcf2\"}"
+    },
+    {
+      "path": "Warehouse",
+      "kind": "Warehouse",
+      "connectionId": "{\"ClusterId\":\"31f9eff4-ae89-405e-8fd9-83a2e261c3be\",\"DatasourceId\":\"d50859a1-cf7d-4b3b-8bbf-a5e5cea2b33d\"}"
+    }
+  ],
+  "parametric": true
+}

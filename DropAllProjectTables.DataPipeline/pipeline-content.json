@@ -1,0 +1,110 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "name": "QueryProjects",
+        "type": "Lookup",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "DataWarehouseSource",
+            "queryTimeout": "02:00:00",
+            "partitionOption": "None"
+          },
+          "firstRowOnly": false,
+          "datasetSettings": {
+            "annotations": [],
+            "linkedService": {
+              "name": "ADOMirror",
+              "properties": {
+                "annotations": [],
+                "type": "DataWarehouse",
+                "typeProperties": {
+                  "endpoint": "vtdel4sf7xjulpdn2h3xornpba-s6jkknxj6moepnlevqk37akzha.datawarehouse.fabric.microsoft.com",
+                  "artifactId": "630ac908-f597-443a-9d83-6aed868f27f7",
+                  "workspaceId": "36a59297-f3e9-471c-b564-ac15bf815938"
+                }
+              }
+            },
+            "type": "DataWarehouseTable",
+            "schema": [],
+            "typeProperties": {
+              "schema": "dbo",
+              "table": "ProjectTracking"
+            }
+          }
+        }
+      },
+      {
+        "name": "DropProjectTables",
+        "description": "Enumerate the ProjectTracking table and drop all these tables from the warehouse to reset the evironment for import",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "QueryProjects",
+            "dependencyConditions": [
+              "Completed"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "items": {
+            "value": "@activity('QueryProjects').output.value",
+            "type": "Expression"
+          },
+          "isSequential": true,
+          "activities": [
+            {
+              "name": "TruncateProjectTable",
+              "type": "Script",
+              "dependsOn": [],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "linkedService": {
+                "name": "ADOMirror",
+                "properties": {
+                  "annotations": [],
+                  "type": "DataWarehouse",
+                  "typeProperties": {
+                    "endpoint": "vtdel4sf7xjulpdn2h3xornpba-s6jkknxj6moepnlevqk37akzha.datawarehouse.fabric.microsoft.com",
+                    "artifactId": "630ac908-f597-443a-9d83-6aed868f27f7",
+                    "workspaceId": "36a59297-f3e9-471c-b564-ac15bf815938"
+                  }
+                }
+              },
+              "typeProperties": {
+                "scripts": [
+                  {
+                    "type": "Query",
+                    "text": {
+                      "value": "@{concat('DROP TABLE [', item().ProjectName, ']')}",
+                      "type": "Expression"
+                    }
+                  }
+                ],
+                "scriptBlockExecutionTimeout": "02:00:00"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "variables": {
+      "ProjectName": {
+        "type": "String"
+      }
+    }
+  }
+}

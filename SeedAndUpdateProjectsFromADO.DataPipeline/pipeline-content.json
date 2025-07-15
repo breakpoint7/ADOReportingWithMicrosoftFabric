@@ -1,0 +1,344 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "name": "EnumerateProjects",
+        "description": "Reads Project info (Name, SK, and LastUpdated) info from ProjectTracking table (this should be setup prior to runs)",
+        "type": "Lookup",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "DataWarehouseSource",
+            "queryTimeout": "02:00:00",
+            "partitionOption": "None"
+          },
+          "firstRowOnly": false,
+          "datasetSettings": {
+            "annotations": [],
+            "linkedService": {
+              "name": "ADOMirror",
+              "properties": {
+                "annotations": [],
+                "type": "DataWarehouse",
+                "typeProperties": {
+                  "endpoint": "vtdel4sf7xjulpdn2h3xornpba-s6jkknxj6moepnlevqk37akzha.datawarehouse.fabric.microsoft.com",
+                  "artifactId": "630ac908-f597-443a-9d83-6aed868f27f7",
+                  "workspaceId": "36a59297-f3e9-471c-b564-ac15bf815938"
+                }
+              }
+            },
+            "type": "DataWarehouseTable",
+            "schema": [],
+            "typeProperties": {
+              "schema": "dbo",
+              "table": "ProjectTracking"
+            }
+          }
+        }
+      },
+      {
+        "name": "RunDataflowForEachProject",
+        "description": "Runs a dataflow for each project, passing in ImportStartDate and ImportStopDate that can be used to control how much data is imported.",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "EnumerateProjects",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "items": {
+            "value": "@activity('EnumerateProjects').output.value",
+            "type": "Expression"
+          },
+          "isSequential": true,
+          "activities": [
+            {
+              "name": "GetProjectData",
+              "description": "Calls a data flow for each project that pulls data and inserts it into the target warehouse",
+              "type": "RefreshDataflow",
+              "dependsOn": [
+                {
+                  "activity": "DeriveStopDate",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "typeProperties": {
+                "dataflowId": "1748e39c-7095-4b4a-bc7f-90a38d924d61",
+                "workspaceId": "36a59297-f3e9-471c-b564-ac15bf815938",
+                "notifyOption": "NoNotification",
+                "dataflowType": "DataflowFabric",
+                "parameters": {
+                  "Organization": {
+                    "value": "DevUtopia",
+                    "type": "string"
+                  },
+                  "ProjectSK": {
+                    "value": {
+                      "value": "@item().ProjectSK",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "ProjectName": {
+                    "value": {
+                      "value": "@item().ProjectName",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "ImportStartDate": {
+                    "value": {
+                      "value": "@variables('ImportStartDate')",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  },
+                  "ImportStopDate": {
+                    "value": {
+                      "value": "@variables('ImportStopDate')",
+                      "type": "Expression"
+                    },
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "name": "RemoveDuplicates",
+              "description": "Importing data may produce duplicate rows, so this is a simple TSQL script that just keeps the latest row, effectively removing duplicates",
+              "type": "Script",
+              "dependsOn": [
+                {
+                  "activity": "GetProjectData",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "linkedService": {
+                "name": "ADOMirror",
+                "properties": {
+                  "annotations": [],
+                  "type": "DataWarehouse",
+                  "typeProperties": {
+                    "endpoint": "vtdel4sf7xjulpdn2h3xornpba-s6jkknxj6moepnlevqk37akzha.datawarehouse.fabric.microsoft.com",
+                    "artifactId": "630ac908-f597-443a-9d83-6aed868f27f7",
+                    "workspaceId": "36a59297-f3e9-471c-b564-ac15bf815938"
+                  }
+                }
+              },
+              "typeProperties": {
+                "scripts": [
+                  {
+                    "type": "Query",
+                    "text": {
+                      "value": "@{concat('WITH RankedItems AS (\n  SELECT *,\n         ROW_NUMBER() OVER (\n           PARTITION BY WorkItemId\n           ORDER BY AnalyticsUpdatedDate DESC\n         ) AS rn\n  FROM [', item().ProjectName, ']\n)\nDELETE FROM RankedItems\nWHERE rn > 1;')}",
+                      "type": "Expression"
+                    }
+                  }
+                ],
+                "scriptBlockExecutionTimeout": "02:00:00"
+              }
+            },
+            {
+              "name": "UpdateProjectTracking",
+              "description": "Record the ImportStopDate into the ProjectTracking table so we can use that set start date for future runs",
+              "type": "Script",
+              "dependsOn": [
+                {
+                  "activity": "RemoveDuplicates",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "linkedService": {
+                "name": "ADOMirror",
+                "properties": {
+                  "annotations": [],
+                  "type": "DataWarehouse",
+                  "typeProperties": {
+                    "endpoint": "vtdel4sf7xjulpdn2h3xornpba-s6jkknxj6moepnlevqk37akzha.datawarehouse.fabric.microsoft.com",
+                    "artifactId": "630ac908-f597-443a-9d83-6aed868f27f7",
+                    "workspaceId": "36a59297-f3e9-471c-b564-ac15bf815938"
+                  }
+                }
+              },
+              "typeProperties": {
+                "scripts": [
+                  {
+                    "type": "Query",
+                    "text": {
+                      "value": "@{concat(\n  'UPDATE dbo.ProjectTracking SET LastUpdated = ''', variables('ImportStopDate'), \n  ''' WHERE ProjectSK = ''', item().ProjectSK, ''';'\n)}\n",
+                      "type": "Expression"
+                    }
+                  }
+                ],
+                "scriptBlockExecutionTimeout": "02:00:00"
+              }
+            },
+            {
+              "name": "DeriveStartDate",
+              "description": "Checks to see if user has provided a ImportStartDate to pass to the data flow, otherwise, try to use the last updated date from the ProjectTracking table (updated after each run)",
+              "type": "IfCondition",
+              "dependsOn": [],
+              "typeProperties": {
+                "expression": {
+                  "value": "@empty(variables('ImportStartDate'))",
+                  "type": "Expression"
+                },
+                "ifFalseActivities": [],
+                "ifTrueActivities": [
+                  {
+                    "name": "LookupLastUpdatedFromTrackingTable",
+                    "type": "Lookup",
+                    "dependsOn": [],
+                    "policy": {
+                      "timeout": "0.12:00:00",
+                      "retry": 0,
+                      "retryIntervalInSeconds": 30,
+                      "secureOutput": false,
+                      "secureInput": false
+                    },
+                    "typeProperties": {
+                      "source": {
+                        "type": "DataWarehouseSource",
+                        "sqlReaderQuery": {
+                          "value": "@concat('SELECT LastUpdated \nFROM ProjectTracking\nWHERE ProjectName = ''', item().ProjectName, '''')",
+                          "type": "Expression"
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                      },
+                      "firstRowOnly": true,
+                      "datasetSettings": {
+                        "annotations": [],
+                        "linkedService": {
+                          "name": "ADOMirror",
+                          "properties": {
+                            "annotations": [],
+                            "type": "DataWarehouse",
+                            "typeProperties": {
+                              "endpoint": "vtdel4sf7xjulpdn2h3xornpba-s6jkknxj6moepnlevqk37akzha.datawarehouse.fabric.microsoft.com",
+                              "artifactId": "630ac908-f597-443a-9d83-6aed868f27f7",
+                              "workspaceId": "36a59297-f3e9-471c-b564-ac15bf815938"
+                            }
+                          }
+                        },
+                        "type": "DataWarehouseTable",
+                        "schema": [],
+                        "typeProperties": {}
+                      }
+                    }
+                  },
+                  {
+                    "name": "ResolvedImportStartDate",
+                    "type": "SetVariable",
+                    "dependsOn": [
+                      {
+                        "activity": "LookupLastUpdatedFromTrackingTable",
+                        "dependencyConditions": [
+                          "Succeeded"
+                        ]
+                      }
+                    ],
+                    "policy": {
+                      "secureOutput": false,
+                      "secureInput": false
+                    },
+                    "typeProperties": {
+                      "variableName": "ImportStartDate",
+                      "value": {
+                        "value": "@if(empty(activity('LookupLastUpdatedFromTrackingTable').output.firstRow), null, activity('LookupLastUpdatedFromTrackingTable').output.firstRow.LastUpdated)\n",
+                        "type": "Expression"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "DeriveStopDate",
+              "description": "Checks to see if the user provided a ImportStopDate as a variable, otherwise uses the current date/time to run the query",
+              "type": "IfCondition",
+              "dependsOn": [
+                {
+                  "activity": "DeriveStartDate",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "typeProperties": {
+                "expression": {
+                  "value": "@empty(variables('ImportStopDate'))",
+                  "type": "Expression"
+                },
+                "ifFalseActivities": [],
+                "ifTrueActivities": [
+                  {
+                    "name": "ResolvedImportStop",
+                    "type": "SetVariable",
+                    "dependsOn": [],
+                    "policy": {
+                      "secureOutput": false,
+                      "secureInput": false
+                    },
+                    "typeProperties": {
+                      "variableName": "ImportStopDate",
+                      "value": {
+                        "value": "@utcNow()",
+                        "type": "Expression"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "variables": {
+      "ImportStartDate": {
+        "type": "String"
+      },
+      "ImportStopDate": {
+        "type": "String"
+      }
+    }
+  }
+}
