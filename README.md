@@ -1,4 +1,4 @@
-#Explanation
+# Explanation
 Azure DevOps provides analytics views and ODATA support for building advanced queries.  These are powerful capabilities, but often lend to challenges with resource consumption for large scale organizations when reports are significantly large or complex.  It's not uncommon to run into throttling limitations by the ADO analytics service, Power BI Service, or limitations of the Power BI client when building queries on a desktop.  It can also be hard to determine exactly when/where a limit is being hit.  Simply put, if you are doing large scale reporting with ADO, it can be a journey to navigate these types of issues.
  
 Microsoft Fabric provides a robust environment where you have better control over the compute used to perform these types of reporting tasks.  It also provides a rich set of tools of ingest data from various sources, build reports, and orchestrate the automation needed to refresh data sets.
@@ -13,19 +13,20 @@ This approach uses a pipeline+dataflow to build a tracking table of ADO projects
  
 Let's get started…
  
-#Create the new Warehouse
+# Create the new Warehouse
 Starting with a new Fabric Workspace, create a Warehouse where you will store your data.  You'll use this new warehouse as a destination in the following steps.  You may find it help to copy the SQL connection string for this warehouse and open it in SQL Management studio as you work through setup so you can inspect table and activity to see how it works.
  
-#Preparing the Project Tracking Table
+# Preparing the Project Tracking Table
 I chose to use a ProjectTacking table to manage a list of ADO projects and track a LastModifed date which indicates when the data was last imported (e.g. - sync's up to this date).
  
 There are two artifacts used to set this up -- a pipeline to create the Table (PrepareProjects.zip) and a simple dataflow to pull all the ADO projects from ODATA to populate it (PopulateProjectsTableFromADO.pqt).  Both have been exported as templates to make it easy to import into a new environment.
  
-Create a new data Pipeline in your environment, Call it PrepareProjects.  Once the pipeline editor open, choose Import from the menu and point it to the PrepareProjects.zip file.
+Create a new data Pipeline in your environment Call it PrepareProjects.  
+Once the pipeline editor open, choose Import from the menu and point it to the PrepareProjects.zip file.
 The import process will ask you to re-map the input to your Warehouse, so point it to the new warehouse you created for this purpose and select "Use This Template".
 ![alt text](images/prepareprojects.png)
  
-Go ahead and run this.  The first step should succeed and create the ProjectTracking table in the warehouse.  The second will fail until we set that up in the next step.
+Run the pipeline.  The first step should succeed and create the ProjectTracking table in the warehouse.  The second will fail until we set that up in the next step.
  
 Open the "PrepareProjects" pipeline, edit "Setup Tracking Table" and set the connection to your new warehouse.  
 Edit the "Populate Projects from ADO" step and map to your workspace and make sure it's set to run PopulateProjectsTableFromADO data flow.
@@ -55,12 +56,12 @@ Add a "Organization" parameter to pass to the dataflow with the name of your ADO
 Run the PrepareProjects Pipeline again and it should fully succeed now.  You can re-run that pipeline anytime you need to refresh the project list.  You can explore the ProjectTracking table and see that all the projects are there.
 ![alt text](images/SampleProjectAndSK.png)
  
-#Summary of what this is actually doing:
+# Summary of what this is actually doing:
 Creates a ProjectTracking Table in your Warehouse with the name, SK, and LastModified date of each project.  Organization is a variable in your dataflow and passed in by the pipeline.  You'll need to configure a connection anytime that organization changes, but it will use the saved connection once you do that.
 I do this as an easy way to reference all the projects I want to work with as a table in the warehouse so I don't have to query ADO each time.  It also serves as a placeholder to record the last sync date for each project, so we can query for changes between runs (vs. trying to pull everything each time).  
  
  
-#Seeding and Refreshing WorkItem data
+# Seeding and Refreshing WorkItem data
 The process for getting ADO workitem data into the warehouse also uses two artifacts.  A pipeline to orchestrate the import of data for each project (SeeAndUpdateProjectsFromADO.zip) and dataflow to actually run the project specific ODATA query and populate the related warehouse table (SeedWorkitemsByProject.pqt).
  
 Create a new Dataflow Gen2 and call it SeedWorkitemsByProject.  You should see a checkbox to enable Git Integration as you provide the name.  Make sure to enable Git integration so this is created with the newer capabilities to pass parameters from pipelines to the dataflows.
@@ -95,7 +96,7 @@ Map it to your current workspace and make sure it calls SeedWorkItemsByProject d
 Finally, make sure the RemoveDuplicates and UpdateProjectTracking steps and update the connection to your new warehouse.
 Validate to make sure everything looks good - Save and Run.
  
-#Summary of what this is doing:
+# Summary of what this is doing:
 This pipeline uses the ProjectTracking table we setup earlier and enumerates every project in that table, effectively calling the ForEach (RunDataflowForEachProject) on every project.
 The ForEach derives a start and stop date by looking at whether you set these pipeline variables, and if not - will try to set the start date based on the last time it was run (looking at the LastModifed data in the ProjectTacking table) and using the current date as the new stop date.
 It calls the SeedWorkItemsByProject dataflow with these params, so that is executing a project level ODATA query to get new worktimes (based on the ADO AnalyticsUpdatedDate) and saves those off into the warehouse in the project related table.
